@@ -5956,6 +5956,141 @@
       1. Return ~invalid~.
     </emu-alg>
   </emu-clause>
+
+  <emu-clause oldids="sec-template-literals-runtime-semantics-argumentlistevaluation,sec-argument-lists-runtime-semantics-argumentlistevaluation" id="sec-argumentlistevaluation">
+    <h1>Runtime Semantics: ArgumentListEvaluation</h1>
+    <emu-grammar>TemplateLiteral : NoSubstitutionTemplate</emu-grammar>
+    <emu-alg>
+      1. Let _templateLiteral_ be this |TemplateLiteral|.
+      1. Let _siteObj_ be GetTemplateObject(_templateLiteral_).
+      1. Return a List whose sole element is _siteObj_.
+    </emu-alg>
+    <emu-grammar>TemplateLiteral : SubstitutionTemplate</emu-grammar>
+    <emu-alg>
+      1. Let _templateLiteral_ be this |TemplateLiteral|.
+      1. Let _siteObj_ be GetTemplateObject(_templateLiteral_).
+      1. Let _remaining_ be ? ArgumentListEvaluation of |SubstitutionTemplate|.
+      1. Return a List whose first element is _siteObj_ and whose subsequent elements are the elements of _remaining_.
+    </emu-alg>
+    <emu-grammar>SubstitutionTemplate : TemplateHead Expression TemplateSpans</emu-grammar>
+    <emu-alg>
+      1. Let _firstSubRef_ be the result of evaluating |Expression|.
+      1. Let _firstSub_ be ? GetValue(_firstSubRef_).
+      1. Let _restSub_ be ? SubstitutionEvaluation of |TemplateSpans|.
+      1. Assert: _restSub_ is a List.
+      1. Return a List whose first element is _firstSub_ and whose subsequent elements are the elements of _restSub_. _restSub_ may contain no elements.
+    <emu-grammar>Arguments : `(` `)`</emu-grammar>
+    <emu-alg>
+      1. Return a new empty List.
+    </emu-alg>
+    <emu-grammar>ArgumentList : AssignmentExpression</emu-grammar>
+    <emu-alg>
+      1. Let _ref_ be the result of evaluating |AssignmentExpression|.
+      1. Let _arg_ be ? GetValue(_ref_).
+      1. Return a List whose sole element is _arg_.
+    </emu-alg>
+    <emu-grammar>ArgumentList : `...` AssignmentExpression</emu-grammar>
+    <emu-alg>
+      1. Let _list_ be a new empty List.
+      1. Let _spreadRef_ be the result of evaluating |AssignmentExpression|.
+      1. Let _spreadObj_ be ? GetValue(_spreadRef_).
+      1. Let _iteratorRecord_ be ? GetIterator(_spreadObj_).
+      1. Repeat,
+        1. Let _next_ be ? IteratorStep(_iteratorRecord_).
+        1. If _next_ is *false*, return _list_.
+        1. Let _nextArg_ be ? IteratorValue(_next_).
+        1. Append _nextArg_ as the last element of _list_.
+    </emu-alg>
+    <emu-grammar>ArgumentList : ArgumentList `,` AssignmentExpression</emu-grammar>
+    <emu-alg>
+      1. Let _precedingArgs_ be ? ArgumentListEvaluation of |ArgumentList|.
+      1. Let _ref_ be the result of evaluating |AssignmentExpression|.
+      1. Let _arg_ be ? GetValue(_ref_).
+      1. Append _arg_ to the end of _precedingArgs_.
+      1. Return _precedingArgs_.
+    </emu-alg>
+    <emu-grammar>ArgumentList : ArgumentList `,` `...` AssignmentExpression</emu-grammar>
+    <emu-alg>
+      1. Let _precedingArgs_ be ? ArgumentListEvaluation of |ArgumentList|.
+      1. Let _spreadRef_ be the result of evaluating |AssignmentExpression|.
+      1. Let _iteratorRecord_ be ? GetIterator(? GetValue(_spreadRef_)).
+      1. Repeat,
+        1. Let _next_ be ? IteratorStep(_iteratorRecord_).
+        1. If _next_ is *false*, return _precedingArgs_.
+        1. Let _nextArg_ be ? IteratorValue(_next_).
+        1. Append _nextArg_ as the last element of _precedingArgs_.
+    </emu-alg>
+  </emu-clause>
+
+  <emu-clause oldids="sec-static-semantics-elisionwidth,sec-runtime-semantics-arrayaccumulation" id="sec-arrayaccumulation">
+    <h1>Runtime Semantics: ArrayAccumulation</h1>
+    <p>With parameters _array_ and _nextIndex_.</p>
+    <emu-grammar>Elision : `,`</emu-grammar>
+    <emu-alg>
+      1. Let _len_ be _nextIndex_ + 1.
+      1. Perform ? Set(_array_, *"length"*, 𝔽(_len_), *true*).
+      1. NOTE: The above Set throws if _len_ exceeds 2<sup>32</sup>-1.
+      1. Return _len_.
+    </emu-alg>
+    <emu-grammar>Elision : Elision `,`</emu-grammar>
+    <emu-alg>
+      1. Return the result of performing ArrayAccumulation for |Elision| with arguments _array_ and _nextIndex_ + 1.
+    </emu-alg>
+    <emu-grammar>ElementList : Elision? AssignmentExpression</emu-grammar>
+    <emu-alg>
+      1. If |Elision| is present, then
+        1. Set _nextIndex_ to the result of performing ArrayAccumulation for |Elision| with arguments _array_ and _nextIndex_.
+        1. ReturnIfAbrupt(_nextIndex_).
+      1. Let _initResult_ be the result of evaluating |AssignmentExpression|.
+      1. Let _initValue_ be ? GetValue(_initResult_).
+      1. Let _created_ be ! CreateDataPropertyOrThrow(_array_, ! ToString(𝔽(_nextIndex_)), _initValue_).
+      1. Return _nextIndex_ + 1.
+    </emu-alg>
+    <emu-grammar>ElementList : Elision? SpreadElement</emu-grammar>
+    <emu-alg>
+      1. If |Elision| is present, then
+        1. Set _nextIndex_ to the result of performing ArrayAccumulation for |Elision| with arguments _array_ and _nextIndex_.
+        1. ReturnIfAbrupt(_nextIndex_).
+      1. Return the result of performing ArrayAccumulation for |SpreadElement| with arguments _array_ and _nextIndex_.
+    </emu-alg>
+    <emu-grammar>ElementList : ElementList `,` Elision? AssignmentExpression</emu-grammar>
+    <emu-alg>
+      1. Set _nextIndex_ to the result of performing ArrayAccumulation for |ElementList| with arguments _array_ and _nextIndex_.
+      1. ReturnIfAbrupt(_nextIndex_).
+      1. If |Elision| is present, then
+        1. Set _nextIndex_ to the result of performing ArrayAccumulation for |Elision| with arguments _array_ and _nextIndex_.
+        1. ReturnIfAbrupt(_nextIndex_).
+      1. Let _initResult_ be the result of evaluating |AssignmentExpression|.
+      1. Let _initValue_ be ? GetValue(_initResult_).
+      1. Let _created_ be ! CreateDataPropertyOrThrow(_array_, ! ToString(𝔽(_nextIndex_)), _initValue_).
+      1. Return _nextIndex_ + 1.
+    </emu-alg>
+    <emu-grammar>ElementList : ElementList `,` Elision? SpreadElement</emu-grammar>
+    <emu-alg>
+      1. Set _nextIndex_ to the result of performing ArrayAccumulation for |ElementList| with arguments _array_ and _nextIndex_.
+      1. ReturnIfAbrupt(_nextIndex_).
+      1. If |Elision| is present, then
+        1. Set _nextIndex_ to the result of performing ArrayAccumulation for |Elision| with arguments _array_ and _nextIndex_.
+        1. ReturnIfAbrupt(_nextIndex_).
+      1. Return the result of performing ArrayAccumulation for |SpreadElement| with arguments _array_ and _nextIndex_.
+    </emu-alg>
+    <emu-grammar>SpreadElement : `...` AssignmentExpression</emu-grammar>
+    <emu-alg>
+      1. Let _spreadRef_ be the result of evaluating |AssignmentExpression|.
+      1. Let _spreadObj_ be ? GetValue(_spreadRef_).
+      1. Let _iteratorRecord_ be ? GetIterator(_spreadObj_).
+      1. Repeat,
+        1. Let _next_ be ? IteratorStep(_iteratorRecord_).
+        1. If _next_ is *false*, return _nextIndex_.
+        1. Let _nextValue_ be ? IteratorValue(_next_).
+        1. Perform ! CreateDataPropertyOrThrow(_array_, ! ToString(𝔽(_nextIndex_)), _nextValue_).
+        1. Set _nextIndex_ to _nextIndex_ + 1.
+    </emu-alg>
+    <emu-note>
+      <p>CreateDataPropertyOrThrow is used to ensure that own properties are defined for the array even if the standard built-in Array prototype object has been modified in a manner that would preclude the creation of new own properties using [[Set]].</p>
+    </emu-note>
+  </emu-clause>
+
 </emu-clause>
 
 <emu-clause id="sec-executable-code-and-execution-contexts">
@@ -12589,75 +12724,6 @@
           `...` AssignmentExpression[+In, ?Yield, ?Await]
       </emu-grammar>
 
-      <emu-clause id="sec-runtime-semantics-arrayaccumulation" oldids="sec-static-semantics-elisionwidth">
-        <h1>Runtime Semantics: ArrayAccumulation</h1>
-        <p>With parameters _array_ and _nextIndex_.</p>
-        <emu-grammar>Elision : `,`</emu-grammar>
-        <emu-alg>
-          1. Let _len_ be _nextIndex_ + 1.
-          1. Perform ? Set(_array_, *"length"*, 𝔽(_len_), *true*).
-          1. NOTE: The above Set throws if _len_ exceeds 2<sup>32</sup>-1.
-          1. Return _len_.
-        </emu-alg>
-        <emu-grammar>Elision : Elision `,`</emu-grammar>
-        <emu-alg>
-          1. Return the result of performing ArrayAccumulation for |Elision| with arguments _array_ and _nextIndex_ + 1.
-        </emu-alg>
-        <emu-grammar>ElementList : Elision? AssignmentExpression</emu-grammar>
-        <emu-alg>
-          1. If |Elision| is present, then
-            1. Set _nextIndex_ to the result of performing ArrayAccumulation for |Elision| with arguments _array_ and _nextIndex_.
-            1. ReturnIfAbrupt(_nextIndex_).
-          1. Let _initResult_ be the result of evaluating |AssignmentExpression|.
-          1. Let _initValue_ be ? GetValue(_initResult_).
-          1. Let _created_ be ! CreateDataPropertyOrThrow(_array_, ! ToString(𝔽(_nextIndex_)), _initValue_).
-          1. Return _nextIndex_ + 1.
-        </emu-alg>
-        <emu-grammar>ElementList : Elision? SpreadElement</emu-grammar>
-        <emu-alg>
-          1. If |Elision| is present, then
-            1. Set _nextIndex_ to the result of performing ArrayAccumulation for |Elision| with arguments _array_ and _nextIndex_.
-            1. ReturnIfAbrupt(_nextIndex_).
-          1. Return the result of performing ArrayAccumulation for |SpreadElement| with arguments _array_ and _nextIndex_.
-        </emu-alg>
-        <emu-grammar>ElementList : ElementList `,` Elision? AssignmentExpression</emu-grammar>
-        <emu-alg>
-          1. Set _nextIndex_ to the result of performing ArrayAccumulation for |ElementList| with arguments _array_ and _nextIndex_.
-          1. ReturnIfAbrupt(_nextIndex_).
-          1. If |Elision| is present, then
-            1. Set _nextIndex_ to the result of performing ArrayAccumulation for |Elision| with arguments _array_ and _nextIndex_.
-            1. ReturnIfAbrupt(_nextIndex_).
-          1. Let _initResult_ be the result of evaluating |AssignmentExpression|.
-          1. Let _initValue_ be ? GetValue(_initResult_).
-          1. Let _created_ be ! CreateDataPropertyOrThrow(_array_, ! ToString(𝔽(_nextIndex_)), _initValue_).
-          1. Return _nextIndex_ + 1.
-        </emu-alg>
-        <emu-grammar>ElementList : ElementList `,` Elision? SpreadElement</emu-grammar>
-        <emu-alg>
-          1. Set _nextIndex_ to the result of performing ArrayAccumulation for |ElementList| with arguments _array_ and _nextIndex_.
-          1. ReturnIfAbrupt(_nextIndex_).
-          1. If |Elision| is present, then
-            1. Set _nextIndex_ to the result of performing ArrayAccumulation for |Elision| with arguments _array_ and _nextIndex_.
-            1. ReturnIfAbrupt(_nextIndex_).
-          1. Return the result of performing ArrayAccumulation for |SpreadElement| with arguments _array_ and _nextIndex_.
-        </emu-alg>
-        <emu-grammar>SpreadElement : `...` AssignmentExpression</emu-grammar>
-        <emu-alg>
-          1. Let _spreadRef_ be the result of evaluating |AssignmentExpression|.
-          1. Let _spreadObj_ be ? GetValue(_spreadRef_).
-          1. Let _iteratorRecord_ be ? GetIterator(_spreadObj_).
-          1. Repeat,
-            1. Let _next_ be ? IteratorStep(_iteratorRecord_).
-            1. If _next_ is *false*, return _nextIndex_.
-            1. Let _nextValue_ be ? IteratorValue(_next_).
-            1. Perform ! CreateDataPropertyOrThrow(_array_, ! ToString(𝔽(_nextIndex_)), _nextValue_).
-            1. Set _nextIndex_ to _nextIndex_ + 1.
-        </emu-alg>
-        <emu-note>
-          <p>CreateDataPropertyOrThrow is used to ensure that own properties are defined for the array even if the standard built-in Array prototype object has been modified in a manner that would preclude the creation of new own properties using [[Set]].</p>
-        </emu-note>
-      </emu-clause>
-
       <emu-clause id="sec-array-initializer-runtime-semantics-evaluation">
         <h1>Runtime Semantics: Evaluation</h1>
         <emu-grammar>ArrayLiteral : `[` Elision? `]`</emu-grammar>
@@ -13106,32 +13172,6 @@
             1. Let _last_ be the TRV of |TemplateMiddle|.
           1. Append _last_ as the last element of the List _front_.
           1. Return _front_.
-        </emu-alg>
-      </emu-clause>
-
-      <emu-clause id="sec-template-literals-runtime-semantics-argumentlistevaluation">
-        <h1>Runtime Semantics: ArgumentListEvaluation</h1>
-        <emu-see-also-para op="ArgumentListEvaluation"></emu-see-also-para>
-        <emu-grammar>TemplateLiteral : NoSubstitutionTemplate</emu-grammar>
-        <emu-alg>
-          1. Let _templateLiteral_ be this |TemplateLiteral|.
-          1. Let _siteObj_ be GetTemplateObject(_templateLiteral_).
-          1. Return a List whose sole element is _siteObj_.
-        </emu-alg>
-        <emu-grammar>TemplateLiteral : SubstitutionTemplate</emu-grammar>
-        <emu-alg>
-          1. Let _templateLiteral_ be this |TemplateLiteral|.
-          1. Let _siteObj_ be GetTemplateObject(_templateLiteral_).
-          1. Let _remaining_ be ? ArgumentListEvaluation of |SubstitutionTemplate|.
-          1. Return a List whose first element is _siteObj_ and whose subsequent elements are the elements of _remaining_.
-        </emu-alg>
-        <emu-grammar>SubstitutionTemplate : TemplateHead Expression TemplateSpans</emu-grammar>
-        <emu-alg>
-          1. Let _firstSubRef_ be the result of evaluating |Expression|.
-          1. Let _firstSub_ be ? GetValue(_firstSubRef_).
-          1. Let _restSub_ be ? SubstitutionEvaluation of |TemplateSpans|.
-          1. Assert: _restSub_ is a List.
-          1. Return a List whose first element is _firstSub_ and whose subsequent elements are the elements of _restSub_. _restSub_ may contain no elements.
         </emu-alg>
       </emu-clause>
 
@@ -13812,51 +13852,6 @@
         <p>The evaluation of an argument list produces a List of values.</p>
       </emu-note>
 
-      <emu-clause id="sec-argument-lists-runtime-semantics-argumentlistevaluation">
-        <h1>Runtime Semantics: ArgumentListEvaluation</h1>
-        <emu-see-also-para op="ArgumentListEvaluation"></emu-see-also-para>
-        <emu-grammar>Arguments : `(` `)`</emu-grammar>
-        <emu-alg>
-          1. Return a new empty List.
-        </emu-alg>
-        <emu-grammar>ArgumentList : AssignmentExpression</emu-grammar>
-        <emu-alg>
-          1. Let _ref_ be the result of evaluating |AssignmentExpression|.
-          1. Let _arg_ be ? GetValue(_ref_).
-          1. Return a List whose sole element is _arg_.
-        </emu-alg>
-        <emu-grammar>ArgumentList : `...` AssignmentExpression</emu-grammar>
-        <emu-alg>
-          1. Let _list_ be a new empty List.
-          1. Let _spreadRef_ be the result of evaluating |AssignmentExpression|.
-          1. Let _spreadObj_ be ? GetValue(_spreadRef_).
-          1. Let _iteratorRecord_ be ? GetIterator(_spreadObj_).
-          1. Repeat,
-            1. Let _next_ be ? IteratorStep(_iteratorRecord_).
-            1. If _next_ is *false*, return _list_.
-            1. Let _nextArg_ be ? IteratorValue(_next_).
-            1. Append _nextArg_ as the last element of _list_.
-        </emu-alg>
-        <emu-grammar>ArgumentList : ArgumentList `,` AssignmentExpression</emu-grammar>
-        <emu-alg>
-          1. Let _precedingArgs_ be ? ArgumentListEvaluation of |ArgumentList|.
-          1. Let _ref_ be the result of evaluating |AssignmentExpression|.
-          1. Let _arg_ be ? GetValue(_ref_).
-          1. Append _arg_ to the end of _precedingArgs_.
-          1. Return _precedingArgs_.
-        </emu-alg>
-        <emu-grammar>ArgumentList : ArgumentList `,` `...` AssignmentExpression</emu-grammar>
-        <emu-alg>
-          1. Let _precedingArgs_ be ? ArgumentListEvaluation of |ArgumentList|.
-          1. Let _spreadRef_ be the result of evaluating |AssignmentExpression|.
-          1. Let _iteratorRecord_ be ? GetIterator(? GetValue(_spreadRef_)).
-          1. Repeat,
-            1. Let _next_ be ? IteratorStep(_iteratorRecord_).
-            1. If _next_ is *false*, return _precedingArgs_.
-            1. Let _nextArg_ be ? IteratorValue(_next_).
-            1. Append _nextArg_ as the last element of _precedingArgs_.
-        </emu-alg>
-      </emu-clause>
     </emu-clause>
 
     <emu-clause id="sec-optional-chains">
