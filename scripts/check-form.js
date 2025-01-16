@@ -19,16 +19,22 @@ if (!key) {
 
 const sheetData = `https://sheets.googleapis.com/v4/spreadsheets/${sheetID}/values/Sheet1!A2:A?key=${key}`;
 
-const [,, slug, branch, all] = process.argv;
-
-if (!slug || !branch) {
-	throw 'args required: slug, branch';
+const { values, positionals } = require('util').parseArgs({
+  allowPositionals: true,
+  strict: true,
+});
+if (positionals.length < 1 || positionals.length > 2) {
+	throw 'usage: node check-form.js <slug> [ref]';
 }
-if (typeof all !== 'undefined' && all !== '--all') {
-	throw '`all` arg, if provided, must be `--all`'
+const [slug, ref = 'HEAD'] = positionals;
+
+console.debug({ slug, ref });
+
+if (!slug || !ref) {
+	throw 'args required: slug, ref';
 }
 
-const sha = String(execSync(`git rev-parse --short ${branch}`)).trim();
+const sha = String(execSync(`git rev-parse ${ref}`)).trim();
 
 const request = async (url, method = 'GET', postData) => {
 	// adapted from https://medium.com/@gevorggalstyan/how-to-promisify-node-js-http-https-requests-76a5a58ed90c
@@ -99,6 +105,9 @@ const legacyCommitsWithUnknownAuthors = new Set([
 	'f424bf075fe582ed8acc36e8a420ee713a21561a', // https://github.com/tc39/ecma262/pull/3142
 	'bea8d0d682fcf2be2a29564bd2ae66ab9dcce21c', // https://github.com/tc39/ecma262/pull/612, user deleted their github
 	'329069469609d8f05ad64c328e2295c171050ce4', // https://github.com/tc39/ecma262/pull/3249, commit email doesn't point to the github user
+	'57f427b18bf7e629565ac2fcf2392ba7b7d0d8fb', // https://github.com/tc39/ecma262/pull/3127, user account deactivated
+	'aada40840dc152d4759b0e3353542e971db08ee7', // tutizaraz (signed) renamed their account to riwom -> dbarabashh
+	'57f427b18bf7e629565ac2fcf2392ba7b7d0d8fb', // https://github.com/tc39/ecma262/pull/3377, bojavou has not signed the form
 ]);
 
 function getAuthorFromCommit(commitObj) {
@@ -116,7 +125,7 @@ async function getAllCommits(page = 1) {
 	const commitsURL = `https://api.github.com/repos/${slug}/commits?anon=1&per_page=${perPage}&page=${page}&sha=${sha}`;
 	const commits = await request(commitsURL).then((json) => JSON.parse(json));
 	return [...new Set([].concat(
-		commits.flatMap(x => getAuthorFromCommit(x) || []),
+		commits.filter(x => !legacyCommitsWithUnknownAuthors.has(x?.sha)).flatMap(x => getAuthorFromCommit(x) || []),
 		commits.length < perPage ? [] : await getAllCommits(page + 1),
 	))];
 }
@@ -211,7 +220,6 @@ const legacy = new Set([
 	'himsngh',
 	'angleKH',
 	'ivan-pan',
-	'szuend',
 	'chrikrah',
 	'viktmv',
 	'bathos',
@@ -241,7 +249,6 @@ const legacy = new Set([
 	'DmitrySoshnikov',
 	'jsreeram',
 	'antony-jeong',
-	'bojavou',
 ].map(x => x.toLowerCase()));
 
 Promise.all([usernames, authors, delegates, emeriti]).then(([usernames, authors, delegates, emeriti]) => {

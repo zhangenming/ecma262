@@ -5,26 +5,28 @@ on: [pull_request]
 jobs:
   esmeta-typecheck:
     name: 'esmeta typecheck'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     env:
       ESMETA_HOME: vendor/esmeta
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Setup JDK
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 17
+      - name: Setup SBT
+        uses: sbt/setup-sbt@v1
       - name: download esmeta
         run: |
           mkdir -p "${ESMETA_HOME}"
           cd "${ESMETA_HOME}"
           git init
           git remote add origin https://github.com/es-meta/esmeta.git
-          git fetch --depth 1 origin 38ca7770e6c64861735c6a02c902cf58f533bc73 ;# v0.3.3
+          git fetch --depth 1 origin 4bc6a2ffd015a150596fde1c9dcbcb3614e7cbbb ;# v0.5.1
           git checkout FETCH_HEAD
       - name: build esmeta
         run: |
