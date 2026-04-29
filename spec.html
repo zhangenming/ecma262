@@ -6021,7 +6021,7 @@
       </h1>
       <dl class="header">
         <dt>description</dt>
-        <dd>It provides the semantics for the comparison _x_ &lt; _y_, returning *true*, *false*, or *undefined* (which indicates that at least one operand is *NaN*). The _leftFirst_ flag is used to control the order in which operations with potentially visible side-effects are performed upon _x_ and _y_. It is necessary because ECMAScript specifies left to right evaluation of expressions. If _leftFirst_ is *true*, the _x_ parameter corresponds to an expression that occurs to the left of the _y_ parameter's corresponding expression. If _leftFirst_ is *false*, the reverse is the case and operations must be performed upon _y_ before _x_.</dd>
+        <dd>It provides the semantics for the comparison _x_ &lt; _y_, returning *true*, *false*, or *undefined* (which indicates that the operands could not be coerced to comparable values of the same numeric type). The _leftFirst_ flag is used to control the order in which operations with potentially visible side-effects are performed upon _x_ and _y_. It is necessary because ECMAScript specifies left to right evaluation of expressions. If _leftFirst_ is *true*, the _x_ parameter corresponds to an expression that occurs to the left of the _y_ parameter's corresponding expression. If _leftFirst_ is *false*, the reverse is the case and operations must be performed upon _y_ before _x_.</dd>
       </dl>
       <emu-alg>
         1. If _leftFirst_ is *true*, then
