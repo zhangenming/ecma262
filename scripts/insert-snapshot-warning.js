@@ -24,6 +24,17 @@ const WARNING_HTML = `
   </p>
 </details>
 <script>
+// make the warning keyboard-dismissable
+document.addEventListener('keydown', e => {
+  if (e.code === 'Escape') {
+    let warning = document.querySelector(".annoying-warning");
+    if (warning.open) {
+      warning.open = false;
+      e.stopImmediatePropagation();
+    }
+  }
+});
+
 // automatically collapse the warning when navigating within the same snapshot
 (() => {
   let referrer;
